@@ -20,8 +20,8 @@ public class PostsController {
 
     // Получить все посты
     @GetMapping
-    public List<Post> getAll() {
-        return new ArrayList<>(posts.values());
+    public ResponseEntity<List<Post>> getAll() {
+        return ResponseEntity.ok(new ArrayList<>(posts.values()));
     }
 
     // Получить пост по ID
