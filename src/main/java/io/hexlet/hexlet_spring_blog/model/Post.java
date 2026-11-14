@@ -1,23 +1,48 @@
+
 package io.hexlet.hexlet_spring_blog.model;
 
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.FetchType;
+import io.hexlet.hexlet_spring_blog.model.User;
 import java.time.LocalDateTime;
 
+@Entity
+@Table(name = "posts")
 public class Post {
-    private Long id;
-    private String title;
-    private String content;
-    private String author;
-    private LocalDateTime createdAt;
 
-    public Post() {
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "user_id")
+    private User user;
+
+    public User getUser() {
+        return user;
     }
 
-    public Post(Long id, String title, String content, String author, LocalDateTime createdAt) {
-        this.id = id;
-        this.title = title;
-        this.content = content;
-        this.author = author;
-        this.createdAt = createdAt;
+    public void setUser(User user) {
+        this.user = user;
+    }
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    private String title;
+
+    private String content;
+
+    private String author;
+
+    private LocalDateTime createdAt;
+
+    private boolean published;
+
+    public Post() {
     }
 
     public Long getId() {
@@ -58,5 +83,13 @@ public class Post {
 
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public boolean isPublished() {
+        return published;
+    }
+
+    public void setPublished(boolean published) {
+        this.published = published;
     }
 }

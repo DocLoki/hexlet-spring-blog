@@ -1,82 +1,98 @@
+
 package io.hexlet.hexlet_spring_blog.controller;
 
 import io.hexlet.hexlet_spring_blog.model.Post;
+import io.hexlet.hexlet_spring_blog.model.User;
+import io.hexlet.hexlet_spring_blog.repository.PostRepository;
+import io.hexlet.hexlet_spring_blog.repository.UserRepository;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicLong;
 
 @RestController
 @RequestMapping({"/posts", "/api/posts"})
 public class PostsController {
 
-    private final ConcurrentHashMap<Long, Post> posts = new ConcurrentHashMap<>();
-    private final AtomicLong nextId = new AtomicLong(1);
+    private final PostRepository postRepository;
+    private final UserRepository userRepository;
 
-    // Получить все посты
-    @GetMapping
-    public ResponseEntity<List<Post>> getAll() {
-        return ResponseEntity.ok(new ArrayList<>(posts.values()));
+    public PostsController(
+            PostRepository postRepository,
+            UserRepository userRepository
+    ) {
+        this.postRepository = postRepository;
+        this.userRepository = userRepository;
     }
 
-    // Получить пост по ID
+    @GetMapping
+    public List<Post> getAll() {
+        return postRepository.findAll();
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<Post> getById(@PathVariable Long id) {
-        Post post = posts.get(id);
-
-        if (post == null) {
-            return ResponseEntity.notFound().build();
-        }
-
-        return ResponseEntity.ok(post);
+        return postRepository.findById(id)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 
-    // Создать пост
     @PostMapping
     public ResponseEntity<Post> create(@RequestBody Post post) {
-        Long id = nextId.getAndIncrement();
+        post.setId(null);
 
-        post.setId(id);
-        post.setCreatedAt(LocalDateTime.now());
+        if (post.getCreatedAt() == null) {
+            post.setCreatedAt(LocalDateTime.now());
+        }
 
-        posts.put(id, post);
+        if (post.getUser() != null && post.getUser().getId() != null) {
+            User user = userRepository.findById(post.getUser().getId())
+                    .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(post);
+            post.setUser(user);
+        }
+
+        Post savedPost = postRepository.save(post);
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(savedPost);
     }
 
-    // Обновить пост
     @PutMapping("/{id}")
     public ResponseEntity<Post> update(
             @PathVariable Long id,
             @RequestBody Post updatedPost
     ) {
-        Post existingPost = posts.get(id);
+        return postRepository.findById(id)
+                .map(post -> {
+                    post.setTitle(updatedPost.getTitle());
+                    post.setContent(updatedPost.getContent());
+                    post.setAuthor(updatedPost.getAuthor());
+                    post.setPublished(updatedPost.isPublished());
 
-        if (existingPost == null) {
-            return ResponseEntity.notFound().build();
-        }
+                    if (updatedPost.getUser() != null
+                            && updatedPost.getUser().getId() != null) {
+                        User user = userRepository.findById(updatedPost.getUser().getId())
+                                .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
-        existingPost.setTitle(updatedPost.getTitle());
-        existingPost.setContent(updatedPost.getContent());
-        existingPost.setAuthor(updatedPost.getAuthor());
+                        post.setUser(user);
+                    }
 
-        return ResponseEntity.ok(existingPost);
+                    return ResponseEntity.ok(postRepository.save(post));
+                })
+                .orElse(ResponseEntity.notFound().build());
     }
 
-    // Удалить пост
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
-        Post removed = posts.remove(id);
-
-        if (removed == null) {
+        if (!postRepository.existsById(id)) {
             return ResponseEntity.notFound().build();
         }
 
+        postRepository.deleteById(id);
         return ResponseEntity.noContent().build();
     }
 }
