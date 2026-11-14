@@ -12,7 +12,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
 @RestController
-@RequestMapping("/api/posts")
+@RequestMapping({"/posts", "/api/posts"})
 public class PostsController {
 
     private final ConcurrentHashMap<Long, Post> posts = new ConcurrentHashMap<>();
